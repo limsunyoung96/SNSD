@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.soccer.league.ILeagueDao">
+
+	<resultMap type="kr.co.soccer.leagueResult.LeagueResultVO" id="leagueResultMap">
+		<id column="lg_name"				property="lgNm"/>
+		<result column="ranking"			property = "rank"/>
+		<result column="tm_name" 			property="tmNm" />
+		<result column="tm_id" 			property="tmId" />
+		<result column="rslt_played" 		property="rsltPlayed"/>
+		<result column="rslt_win"	    	property="rsltWin"/>
+		<result column="rslt_lose" 			property="rsltLose"/>
+		<result column="rslt_draw"  		property="rsltDraw"/>
+		<result column="rslt_point" 		property="rsltPoint"/>
+		<result column="home" 		property="tmHome"/>
+		<result column="away" 		property="tmAway"/>
+		<result column="match_no" 			property="matchNo"/>
+		<result column="TM_ATCH_NAME"	property="tmAtachName"/>
+		<result column="TM_MEM" 			property="tmMem"/>
+		<result column="TM_REG_DATE" 	property="tmRegDate"/>
+		<result column="MEM_ID" 			property="memId"/>
+		<result column="MEM_NAME" 			property="memName"/>
+		<result column="home_tm" 			property="homeTm"/>
+		<result column="away_tm" 			property="awayTm"/>
+		<result column="home_gf" 			property="homeGf"/>
+		<result column="home_result" 			property="homeResult"/>
+		<result column="away_gf" 			property="awayGf"/>
+		<result column="away_result" 			property="awayResult"/>
+		<result column="home_tm_nm" 			property="homeTmNm"/>
+		<result column="away_tm_nm" 			property="awayTmNm"/>
+	</resultMap>
+	
+	<insert id="insertLeague" parameterType="kr.co.soccer.league.LeagueVO">
+		INSERT INTO league (
+		    lg_code
+		    , lg_name
+		    , start_date
+		    , end_date
+		    , lg_region
+		    , lg_del
+		    , team_count
+		) VALUES (
+			  #{lgCode}
+			, #{lgName}
+			, to_date(#{startDate},'yyyy-mm-dd') 
+			, <![CDATA[to_date(#{startDate},'yyyy-mm-dd') + ((select to_number(comm_name) from comm where  comm_code = #{teamCount} )+2)*7  ]]>
+			, #{lgRegion}
+			, 'N' 
+			, #{teamCount}
+		)
+	</insert>
+	<update id="updateLeague" parameterType="kr.co.soccer.league.LeagueVO">
+	</update>
+	<update id="deleteLeague" parameterType="string">
+	</update>
+	<select id="getLeague" resultType="kr.co.soccer.league.LeagueVO" parameterType="string">
+	SELECT
+	    lg_code
+	    , lg_name
+	    , start_date
+	    , end_date
+	    , lg_region
+	    , lg_winner
+	    , lg_join
+	    , lg_del
+	    , team_count
+	FROM
+	    league
+	WHERE
+		lg_code = #{lgCode}
+	</select>
+	
+	<select id="getRecentLeague" resultType="kr.co.soccer.league.LeagueVO" >
+			SELECT LG_CODE, LG_NAME, START_DATE
+		          , END_DATE, LG_REGION, LG_WINNER
+		          , LG_JOIN, LG_DEL, TEAM_COUNT
+		FROM(SELECT LG_CODE, LG_NAME, START_DATE
+		          , END_DATE, LG_REGION, LG_WINNER
+		          , LG_JOIN, LG_DEL, TEAM_COUNT
+		       FROM LEAGUE
+		      WHERE START_DATE >= sysdate
+		   ORDER BY START_DATE)
+		WHERE rownum=1
+	</select>
+	
+	<select id="getRunningLeague" resultType="kr.co.soccer.league.LeagueVO" >
+			SELECT LG_CODE, LG_NAME, START_DATE
+		          , END_DATE, LG_REGION, LG_WINNER
+		          , LG_JOIN, LG_DEL, TEAM_COUNT
+		FROM(SELECT LG_CODE, LG_NAME, START_DATE
+		          , END_DATE, LG_REGION, LG_WINNER
+		          , LG_JOIN, LG_DEL, TEAM_COUNT
+		       FROM LEAGUE
+		      WHERE sysdate BETWEEN START_DATE AND END_DATE
+		   ORDER BY START_DATE)
+		WHERE rownum=1
+	</select>
+	
+	<select id="getLeagueCount" resultType="int" parameterType="kr.co.soccer.league.LeagueVO">
+	</select>
+	
+	<select id="isLeagueConfirm" resultType="int" parameterType="String">
+		SELECT count(*)
+		FROM LEAGUERESULT
+		WHERE lg_code = #{1234}
+	</select>
+	<select id="getLeagueList" resultType="kr.co.soccer.league.LeagueVO">
+	SELECT
+	    lg_code
+	    , lg_name
+	    , TO_CHAR(start_date,'YYYY-MM-DD') AS start_date
+	    , TO_CHAR(end_date,'YYYY-MM-DD') AS end_date
+	    , ( select comm_name from comm where lg_region = comm_code ) as lg_region
+	    , lg_winner
+	    , lg_join
+	    , lg_del
+	    , team_count
+	FROM
+	    league a , comm b
+	WHERE
+		a.lg_region = b.comm_code
+	AND lg_del = 'N'
+	ORDER BY start_date desc
+	</select>
+	 
+	<select id="getLeagueListForGuests" resultType="kr.co.soccer.league.LeagueVO">
+	SELECT lg_code
+		 , lg_name
+	     , TO_CHAR(start_date,'YYYY-MM-DD') AS start_date
+		 , TO_CHAR(end_date,'YYYY-MM-DD') AS end_date
+		 , ( select comm_name from comm where lg_region = comm_code ) as lg_region
+		 , lg_winner
+		 , lg_join
+		 , lg_del
+		 , team_count
+	 FROM  league a , comm b
+	 WHERE a.lg_region = b.comm_code
+	   and a.lg_code in ( select distinct lg_code from LEAGUERESULT)
+	   AND lg_del = 'N'
+	ORDER BY start_date desc
+	</select>
+	
+	<select id="getLeagueView" resultType="kr.co.soccer.league.LeagueVO">
+	SELECT
+	      a.lg_code
+	    , a.lg_name
+	    , TO_CHAR(start_date,'YYYY-MM-DD') AS start_date
+	    , TO_CHAR(end_date,'YYYY-MM-DD') AS end_date
+	    , ( select comm_name from comm where lg_region = comm_code ) as lg_region
+	    , d.tm_name AS lg_join
+	    , a.team_count
+	    , d.tm_id
+	    , d.mem_id 
+	FROM
+	    league a , comm b , leagueapply c, team d
+	WHERE
+		a.lg_region = b.comm_code
+    and a.lg_code = c.lg_code
+    and c.tm_id = d.tm_id
+    and c.result = 'Y'
+    and a.lg_code = #{lgCode}
+	</select>
+	
+	<insert id="insertConfirmLeague" parameterType="kr.co.soccer.leagueResult.LeagueResultVO" > 
+	INSERT into leaguestatus(match_no,home_tm, away_tm,lg_code)
+    SELECT  rownum
+    	  , a.home
+    	  , a.away
+    	  , a.lg_code as lg_code
+    FROM
+         (SELECT dbms_random.value() rnd
+           , a.lg_code
+           , a.tm_id as home
+           , b.tm_id as away
+       FROM leagueapply a, leagueapply b
+        <![CDATA[
+         WHERE a.tm_id < b.tm_id 
+       ]]>
+        AND a.result = 'Y'
+        and b.result = 'Y' 
+        and a.lg_code = #{lgCode}
+        and b.lg_code = #{lgCode}
+        order by rnd asc
+  		 ) a
+	</insert>
+	
+	<insert id="confirmSetResultLeague" parameterType="kr.co.soccer.leagueResult.LeagueResultVO"> 
+		INSERT INTO leagueresult (lg_code, tm_id)
+		  SELECT a.lg_code, a.tm_id
+		    FROM (
+		    SELECT tm_id,lg_code
+		        FROM leagueapply
+		        WHERE lg_code = #{lgCode}
+		        AND result = 'Y') a
+	</insert>
+	
+	<update id="updateLeagueResult" parameterType="kr.co.soccer.leagueResult.LeagueResultVO">
+	 UPDATE leaguestatus
+		SET
+		      home_gf = #{homeGf}
+		    , home_result = TO_NUMBER(#{homeResult})
+		    , away_gf =  #{awayGf}
+		    , away_result = #{awayResult}
+		WHERE
+		    match_no = #{matchNo}
+		    AND lg_code = #{lgCode}
+	</update>
+	
+	<select id="getLeagueScheduleList" resultType="kr.co.soccer.leagueResult.LeagueResultVO" parameterType="String" resultMap="leagueResultMap">
+   SELECT
+	      match_no
+	    , (select tm_name from team where home_tm = tm_id) as home_tm_nm
+	    , (select tm_name from team where away_tm = tm_id) as away_tm_nm
+	    , home_gf 
+	    , away_gf
+	    , lg_code
+	    , home_tm
+	    , away_tm
+	FROM
+	    leaguestatus
+	WHERE lg_code = #{lgCode}
+	</select> 
+	
+	<update id="updateHomeResult" parameterType="kr.co.soccer.leagueResult.LeagueResultVO"> 
+	UPDATE leagueresult
+	SET 
+	<if test = "homeResult == 1"> 
+		  rslt_win = nvl(rslt_win, 0) + 1
+		, rslt_point = nvl(rslt_point, 0) + 3 
+	</if>
+    <if test = "homeResult == 2"> 
+	   	  rslt_draw = nvl(rslt_draw, 0) + 1
+	    , rslt_point = nvl(rslt_point,0) + 1
+	</if>
+	<if test = "homeResult == 3"> 
+	      rslt_lose = nvl(rslt_lose,0) +1
+	</if>
+	    , rslt_played = nvl(rslt_played, 0) + 1
+	    , rslt_gf = nvl(rslt_gf,0) + #{homeGf}
+	    , rslt_ga = nvl(rslt_ga,0) + #{awayGf}
+	WHERE
+	    lg_code = #{lgCode}
+	    AND tm_id = #{homeTm}
+	</update>
+	
+	<update id="updateAwayResult" parameterType="kr.co.soccer.leagueResult.LeagueResultVO">
+	UPDATE leagueresult
+	SET
+	<if test = "awayResult == 1"> 
+		  rslt_win = nvl(rslt_win, 0) + 1
+		, rslt_point = nvl(rslt_point, 0) + 3 
+	</if>
+    <if test = "awayResult == 2"> 
+	   	  rslt_draw = nvl(rslt_draw, 0) + 1
+	    , rslt_point = nvl(rslt_point, 0) + 1
+	</if>
+	<if test = "awayResult == 3"> 
+	      rslt_lose = nvl(rslt_lose, 0) +1
+	</if>
+	    , rslt_played = nvl(rslt_played, 0) + 1
+	    , rslt_gf = nvl(rslt_gf,0) + #{awayGf}
+	    , rslt_ga = nvl(rslt_ga,0) + #{homeGf}
+	WHERE
+	    lg_code = #{lgCode}
+	    AND tm_id = #{awayTm}
+	</update>
+	
+	<select id="getLeagueResultView" resultMap="leagueResultMap">
+	SELECT rownum as ranking
+		  ,a.* 
+	FROM(
+		SELECT
+		    distinct  c.lg_name
+		    , b.tm_name as tm_name
+		    , a.tm_id
+		    , a.rslt_played as rslt_played
+		    , a.rslt_win as rslt_win
+		    , a.rslt_lose as rslt_lose
+		    , a.rslt_draw as rslt_draw
+		    , a.rslt_point as rslt_point
+            , a.rslt_gf as rslt_gf
+            , a.rslt_ga as rslt_ga
+            , a.rslt_gf - a.rslt_ga as rslt_gd
+		FROM
+		    leagueresult a , team b, league c, leagueapply d
+		where a.lg_code = c.lg_code
+		and a.tm_id = b.tm_id
+        and a.tm_id = d.tm_id
+        and a.lg_code = #{lgCode}
+        and d.result = 'Y'
+		order by rslt_point desc) a
+	</select>
+	
+
+</mapper>

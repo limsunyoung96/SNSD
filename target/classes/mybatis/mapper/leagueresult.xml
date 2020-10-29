@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+<mapper namespace="kr.co.soccer.leagueResult.ILeagueResultDao">
+	<resultMap type="kr.co.soccer.leagueResult.LeagueResultVO" id="leagueResultMap">
+		<id column="lg_name"				property="lgNm"/>
+		<result column="ranking"			property = "rank"/>
+		<result column="tm_name" 			property="tmNm" />
+		<result column="rslt_played" 		property="rsltPlayed"/>
+		<result column="rslt_win"	    	property="rsltWin"/>
+		<result column="rslt_lose" 			property="rsltLose"/>
+		<result column="rslt_draw"  		property="rsltDraw"/>
+		<result column="rslt_point" 		property="rsltPoint"/>
+		<result column="rslt_gf" 		property="rsltGf"/>
+		<result column="rslt_ga" 		property="rsltGa"/>
+		<result column="rslt_gd" 		property="rsltGd"/>
+		<result column="home" 		property="tmHome"/>
+		<result column="away" 		property="tmAway"/>
+		<result column="no" 			property="matchNo"/>
+		<result column="TM_ATCH_NAME"	property="tmAtachName"/>
+		<result column="TM_MEM" 			property="tmMem"/>
+		<result column="TM_REG_DATE" 	property="tmRegDate"/>
+		<result column="MEM_ID" 			property="memId"/>
+		<result column="MEM_NAME" 			property="memName"/>
+		
+		<result column="record_played" 			property="recordPlayed"/>
+		<result column="record_win" 			property="recordWin"/>
+		<result column="record_odd" 			property="recordOdd"/>
+	</resultMap>
+	
+	
+	<select id="getLeagueResultList" resultMap="leagueResultMap">
+	SELECT rownum as ranking
+		  ,a.* 
+	FROM(
+		SELECT
+		    distinct  c.lg_name
+		    , b.tm_name as tm_name
+		    , a.tm_id
+		    , a.rslt_played as rslt_played
+		    , a.rslt_win as rslt_win
+		    , a.rslt_lose as rslt_lose
+		    , a.rslt_draw as rslt_draw
+		    , a.rslt_point as rslt_point
+            , a.rslt_gf as rslt_gf
+            , a.rslt_ga as rslt_ga
+            , a.rslt_gf - a.rslt_ga as rslt_gd
+		FROM
+		    leagueresult a , team b, league c, leagueapply d
+		where a.lg_code = c.lg_code
+		and a.tm_id = b.tm_id
+        and a.tm_id = d.tm_id
+        and a.lg_code=(SELECT LG_CODE
+						   FROM LEAGUE
+						  WHERE sysdate BETWEEN START_DATE AND END_DATE)
+        and d.result = 'Y'
+		order by rslt_point desc) a
+	</select>
+	
+		<select id="getLeagueResultListWithTeam" resultMap="leagueResultMap">
+		
+	SELECT rownum as ranking
+		  , d.* 
+	FROM(
+		SELECT
+		     distinct c.lg_name
+		    , b.tm_name as tm_name
+		    , a.tm_id
+		    , a.rslt_played as rslt_played
+		    , a.rslt_win as rslt_win
+		    , a.rslt_lose as rslt_lose
+		    , a.rslt_draw as rslt_draw
+		    , a.rslt_point as rslt_point
+		    , b.TM_ATCH_NAME
+		    , b.TM_MEM
+		    , TO_CHAR(b.TM_REG_DATE, 'YYYY-MM-DD') as tm_reg_date
+		    , b.MEM_ID
+		    , m.MEM_NAME
+		FROM
+		    leagueresult a , team b, league c, member m,leagueapply l
+		where a.lg_code = c.lg_code
+		and a.tm_id = b.tm_id
+		and b.mem_id = m.mem_id
+        and a.tm_id = l.tm_id
+        and l.result = 'Y'
+		 and a.lg_code = (	SELECT LG_CODE
+						   FROM LEAGUE
+						  WHERE sysdate BETWEEN START_DATE AND END_DATE)
+		order by rslt_point desc) d
+	</select> 
+	
+	<select id="getLeagueTopOdd" resultMap="leagueResultMap">
+	SELECT * from(
+	SELECT
+      b.tm_name as tm_name
+      ,b.tm_id
+     , b.tm_atch_name as TM_ATCH_NAME
+    , floor(nvl(sum(rslt_win)/decode(sum(rslt_played),0,null,sum(rslt_played)),0)*100) || '%' as record_odd
+	FROM
+	    leagueresult a, team b
+	    where a.tm_id = b.tm_id
+	    group by b.tm_name, b.tm_atch_name,b.tm_id
+	    order by record_odd desc)
+	    where rownum = 1 
+	</select>
+	<select id="getLeagueTopWin" resultMap="leagueResultMap">
+	SELECT * from(
+	SELECT
+      b.tm_name as tm_name
+      ,b.tm_id
+     , b.tm_atch_name as TM_ATCH_NAME
+    , sum(rslt_win) as record_win
+	FROM
+	    leagueresult a, team b
+	    where a.tm_id = b.tm_id
+	    group by b.tm_name, b.tm_atch_name,b.tm_id
+	    order by record_win desc)
+	    where rownum = 1 
+	</select>
+	 
+	 <select id="getLeagueTopPlayed" resultMap="leagueResultMap">
+	 SELECT * from(
+	SELECT
+      b.tm_name as tm_name
+      ,b.tm_id
+     , b.tm_atch_name as TM_ATCH_NAME
+    , sum(rslt_played) as record_played
+	FROM
+	    leagueresult a, team b
+	    where a.tm_id = b.tm_id
+	    group by b.tm_name, b.tm_atch_name,b.tm_id
+	    order by record_played desc)
+	    where rownum = 1 
+	  </select>
+</mapper>

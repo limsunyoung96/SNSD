@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="kr.co.soccer.free.dao.IFreeBoardDao">
+
+	<resultMap type="kr.co.soccer.free.vo.FreeBoardVO" 
+	           id="freeBoardMap">
+		<id column="bo_no"              property="boNo" />
+		<result column="user_id"       property="userId" />
+		<result column="user_pass"       property="userPass" />
+		<result column="user_name"       property="userName" />
+		<result column="bo_title"       property="boTitle" />
+		<result column="bo_content"     property="boContent" />
+		<result column="bo_reg_date"    property="boRegDate" />
+		<result column="bo_mod_date"    property="boModDate" />
+		<result column="comm_code"    property="commCode" />
+		<result column="bo_hit"         property="boHit"  />
+		<result column="bo_del_yn"      property="boDelYn" />	
+		<result column="bo_writer"      property="boWriter"  />
+	</resultMap>
+	
+  <sql id="whereClause">
+  	<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+  		<choose>
+  			<when test='searchType == "T"'>
+  				AND bo_title LIKE  '%' || #{searchWord} || '%'
+  			</when>
+  			<when test='searchType == "W"'>
+  				AND bo_writer LIKE  '%' || #{searchWord} || '%'
+  			</when>
+  			<when test='searchType == "C"'>
+  				AND bo_content LIKE  '%' || #{searchWord} || '%'
+  			</when>
+  			<otherwise>
+  				AND bo_title LIKE  '%' || #{searchWord} || '%'
+  			</otherwise>
+  		</choose>  	
+  	</if>
+  </sql>
+
+  <select id="getBoardCount"
+          resultType="int" 
+          parameterType="kr.co.soccer.free.vo.FreeBoardSearchVO" >
+		SELECT count(*)       
+		  FROM free_board     
+		 WHERE bo_del_yn = 'N'  
+		 <include refid="whereClause" />
+  </select>
+  
+  <select id="getBoardList" resultType="kr.co.soccer.free.vo.FreeBoardVO" 
+                            parameterType="kr.co.soccer.free.vo.FreeBoardSearchVO"  >                            
+		<include refid="common.PRE_PAGING_SQL" /> 
+  		SELECT bo_no
+			     , bo_title    
+			     , TO_CHAR(bo_reg_date,'YYYY.MM.DD') AS bo_reg_date 
+			     , TO_CHAR(bo_mod_date,'YYYY.MM.DD') AS bo_mod_date 
+			     , bo_hit  
+			     , bo_del_yn   
+			     , bo_writer 
+			  FROM free_board
+			 WHERE bo_del_yn   = 'N'
+			   <include refid="whereClause" />
+			  ORDER BY bo_no DESC  
+		<include refid="common.SUF_PAGING_SQL" />
+  </select>
+  
+  
+  
+  <select id="getBoard" parameterType="int" 
+                        resultMap="freeBoardMap">
+			SELECT bo_no        
+			     , bo_title     
+			     , bo_writer      
+			     , bo_content       
+			     , bo_hit      
+			     , TO_CHAR(bo_reg_date,'YYYY.MM.DD HH24:MI') AS bo_reg_date 
+			     , TO_CHAR(bo_mod_date,'YYYY.MM.DD HH24:MI') AS bo_mod_date 
+			     , bo_del_yn   
+			     , 'FREE' AS bo_type 
+			  FROM free_board   	
+			 WHERE bo_no = #{테스트}
+  </select>
+  
+  
+  
+  
+  
+  
+  
+  <insert id="insertBoard" parameterType="kr.co.soccer.free.vo.FreeBoardVO">
+  	<selectKey resultType="int" keyProperty="boNo" order="BEFORE">
+  		SELECT seq_free_board.nextval FROM dual
+  	</selectKey>
+			INSERT INTO free_board (                         
+				      bo_no       , bo_title    
+				    , bo_writer   , bo_content     
+			       , bo_hit    , bo_reg_date    
+				    , bo_del_yn  ) 			   
+				 VALUES (   			
+					   #{boNo} , #{boTitle}			
+					 , #{boWriter}  , #{boContent}				
+		  			, 0         , SYSDATE	    
+					 , 'N' )			  
+			  
+  </insert>
+  <update id="updateBoard" parameterType="kr.co.soccer.free.vo.FreeBoardVO">
+  		UPDATE free_board                       					         
+			   SET bo_title    = #{boTitle}	 
+			     , bo_writer   = #{boWriter}        
+			     , bo_content  = #{boContent}
+			     , bo_mod_date = SYSDATE  					 
+			 WHERE bo_no = #{boNo}
+  </update>
+  
+  <delete id="deleteBoard" parameterType="kr.co.soccer.free.vo.FreeBoardVO">
+  	<![CDATA[
+ 			UPDATE free_board      
+			   SET bo_del_yn = 'Y' 
+			 WHERE bo_no     = #{boNo}
+		]]>	 
+  </delete>
+    
+  <update id="increaseHit" parameterType="int" >
+  	UPDATE free_board        
+			 SET bo_hit = bo_hit + 1 
+		 WHERE bo_no  = #{boNo}				 
+  </update>
+  
+</mapper>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- nameSpace : 간단하게 하셔도 됩니다. 단, mapper 클래스를 사용하려면 완전한 클래스 이름으로 지정 -->
+<mapper namespace="kr.co.soccer.mypage.MemberMyPageMapper">
+
+<resultMap type="kr.co.soccer.searchTeamMem.SearchTeamMemVO" id="searchTeamMemMap">
+		<id column="scht_no" 				property="schtNo" />
+		<result column="scht_position" 		property="schtPosition"/>
+		<result column="scht_age"	    property="schtAge"/>
+		<result column="scht_region" 	property="schtRegion"/>
+		<result column="scht_time"  property="schtTime"/>
+		<result column="scht_hit" 	    property="schtHit"/>
+		<result column="scht_title" 	property="schtTitle"/>
+		<result column="scht_content" 		    property="schtContent"/>
+		<result column="scht_regdate" 		property="schtRegDate"/>
+		<result column="scht_name"    property="schtName"/>
+		<result column="scht_position_nm"    property="schtPositionNm"/>
+		<result column="scht_region_nm"      property="schtRegionNm"/>
+		<result column="scht_category"      property="schtCategory"/>
+		<result column="schm_position" 		property="schmPosition"/>
+	<result column="schm_age"	    property="schmAge"/>
+	<result column="schm_region" 	property="schmRegion"/>
+	<result column="schm_time"  property="schmTime"/>
+	<result column="schm_hit" 	    property="schmHit"/>
+	<result column="schm_title" 	property="schmTitle"/>
+	<result column="schm_content" 		    property="schmContent"/>
+	<result column="schm_regdate" 		property="schmRegDate"/>
+	<result column="schm_name"    property="schmName"/>
+	<result column="schm_position_nm"    property="schmPositionNm"/>
+	<result column="schm_region_nm"      property="schmRegionNm"/>
+	<result column="search_result"      property="searchResult"/>
+	</resultMap>
+
+	
+	
+<select id="selectSearchTeamMemMatch" parameterType="map" resultType="kr.co.soccer.searchTeamMem.SearchTeamMemVO">
+select * from(
+select  a.scht_no
+        ,b.schm_no
+      , c.mem_name as scht_name
+      , b.tm_id
+      , (select comm_name from comm d where d.comm_code = a.scht_position ) as scht_position_nm
+      , (select comm_name from comm d where d.comm_code = a.scht_region ) as scht_region_nm
+      , (select comm_name from comm d where d.comm_code = a.scht_time ) as scht_time_nm
+      , (select comm_name from comm d where d.comm_code = a.scht_age ) as scht_age_nm
+      , tm_name
+      , (select comm_name from comm d where d.comm_code = b.schm_position ) as schm_position_nm
+      , (select comm_name from comm d where d.comm_code = b.schm_region ) as schm_region_nm
+      , (select comm_name from comm d where d.comm_code = b.schm_time ) as schm_time_nm
+      , (select comm_name from comm d where d.comm_code = b.schm_age ) as schm_age_nm
+      , decode(a.scht_position,b.schm_position,1,0) + decode(a.scht_region,b.schm_region,1,0) + decode(a.scht_time,b.schm_time,1,0)+
+        decode(a.scht_age,b.schm_age,1,0) as search_result
+from searchteam a, searchmember b, member c
+
+where a.mem_id = c.mem_id
+
+<if test="tmId != null">
+and b.tm_id = #{tmId}
+</if>
+<if test="tmId == null">
+and a.mem_id = #{memId}
+</if>
+) 
+where search_result >=3
+
+</select>	
+
+<select id="selectSearchTeamMemMatchList" parameterType="map" resultType="kr.co.soccer.searchTeamMem.SearchTeamMemVO">
+select * from(
+select  a.scht_no
+        ,b.schm_no
+      , c.mem_name as scht_name
+      , b.tm_id
+      , a.scht_title
+      , b.schm_title
+      , to_char(a.scht_regdate, 'YYYY-MM-DD') as scht_regdate
+      , to_char(b.schm_regdate, 'YYYY-MM-DD') as schm_regdate
+      , (select comm_name from comm d where d.comm_code = a.scht_position ) as scht_position_nm
+      , (select comm_name from comm d where d.comm_code = a.scht_region ) as scht_region_nm
+      , (select comm_name from comm d where d.comm_code = a.scht_time ) as scht_time_nm
+      , (select comm_name from comm d where d.comm_code = a.scht_age ) as scht_age_nm
+      , tm_name
+      , (select comm_name from comm d where d.comm_code = b.schm_position ) as schm_position_nm
+      , (select comm_name from comm d where d.comm_code = b.schm_region ) as schm_region_nm
+      , (select comm_name from comm d where d.comm_code = b.schm_time ) as schm_time_nm
+      , (select comm_name from comm d where d.comm_code = b.schm_age ) as schm_age_nm
+      , decode(a.scht_position,b.schm_position,1,0) + decode(a.scht_region,b.schm_region,1,0) + decode(a.scht_time,b.schm_time,1,0)+
+        decode(a.scht_age,b.schm_age,1,0) as search_result
+from searchteam a, searchmember b, member c
+
+where a.mem_id = c.mem_id
+
+<if test="tmId != null">
+and b.tm_id = #{tmId}
+</if>
+<if test="tmId == null">
+and a.mem_id = #{memId}
+</if>
+) 
+where search_result >=3
+
+</select>
+
+</mapper>
+
+
+
+
+
+
+
+

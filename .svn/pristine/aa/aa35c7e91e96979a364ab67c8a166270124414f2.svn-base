@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="kr.co.soccer.member.IMemberDao">
+	<!-- <sql id="whereClause">
+
+		<if
+			test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchJob)">
+			AND mem_job = #{searchJob}
+		</if>
+		<if
+			test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchLike)">
+			AND mem_like = #{searchLike}
+		</if>
+		<if
+			test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+			<choose>
+				<when test='searchType == "N"'>
+					AND mem_name LIKE '%' || #{searchWord} || '%'
+				</when>
+				<when test='searchType == "I"'>
+					AND mem_id LIKE '%' || #{searchWord} || '%'
+				</when>
+				<when test='searchType == "H"'>
+					AND mem_hp LIKE '%' || #{searchWord} || '%'
+				</when>
+				<when test='searchType == "A1"'>
+					AND mem_add1 LIKE '%' || #{searchWord} || '%'
+				</when>
+				<when test='searchType == "A2"'>
+					AND mem_add2 LIKE '%' || #{searchWord} || '%'
+				</when>
+				<otherwise>
+					AND mem_name LIKE '%' || #{searchWord} || '%'
+				</otherwise>
+			</choose>
+		</if>
+	</sql> -->
+	
+	<insert id="insertMember"
+		parameterType="kr.co.soccer.member.MemberVO">
+				INSERT INTO member (
+				    mem_id
+				    , mem_pass
+				    , mem_name
+				    , mem_phone
+				    , mem_birth
+				    , mem_region
+				    , mem_email
+				    , mem_remark
+				    , mem_del_yn
+				) VALUES (
+				<![CDATA[                                   
+			 	  #{memId}     , #{memPass} , #{memName} 
+			 	, #{memPhone}    , #{memBirth}  , #{memRegion} 
+			 	, #{memEmail}   , #{memRemark}	,'N'
+			 	)
+				 ]]>
+	</insert>
+	<update id="updateMember" parameterType="kr.co.soccer.member.MemberVO">
+		     UPDATE member  
+				<![CDATA[         
+			  	 SET mem_id      = #{memId}
+				   , mem_pass 	= #{memPass}
+				   , mem_name		= #{memName}
+				   , mem_phone  	= #{memPhone}
+				   , mem_birth 	= #{memBirth}
+				   , mem_region 	= #{memRegion}
+				   , mem_email 	= #{memEmail}
+				   , mem_remark 	= #{memRemark}
+			   WHERE mem_id   	= #{memId}    
+				 ]]>
+	</update>
+	
+	<update id="updateMemberTeam" parameterType="kr.co.soccer.team.TeamVO" >
+		     UPDATE member  
+				<![CDATA[         
+			  	 SET MEM_TEAM_ID   = #{tmId}
+				   , MEM_TEAM_NAME 	= #{tmName}
+			   WHERE mem_id   	= #{memId}    
+				 ]]>
+	</update>
+
+	<delete id="deleteMember" parameterType="string">
+				<![CDATA[       
+				 UPDATE member      
+				 SET mem_del_yn = 'Y'      
+				 WHERE mem_id = #{memId}  
+				  ]]>
+
+	</delete>
+
+	<select id="getMemberList"	resultType="kr.co.soccer.member.MemberVO">
+				SELECT
+				    mem_id
+				    , mem_pass
+				    , mem_name
+				    , mem_phone
+				    , TO_CHAR(mem_birth, 'YYYY-MM-DD') AS mem_birth
+				    , ( select comm_name from comm where mem_region = comm_code ) as mem_region
+				    , mem_email
+				    , mem_remark
+				    , mem_team_id
+				    , mem_team_name
+				FROM
+				    member a , comm b
+				WHERE 
+				    a.mem_region = b.comm_code
+				AND (mem_del_yn = 'N' or mem_del_yn is null)
+				ORDER BY mem_id desc
+	</select>
+
+	<select id="getMember" parameterType="string"
+		resultType="kr.co.soccer.member.MemberVO">
+				SELECT
+				    mem_id
+				    , mem_pass
+				    , mem_name
+				    , mem_phone
+				    , TO_CHAR(mem_birth, 'YYYY-MM-DD') AS mem_birth
+				    , ( select comm_name from comm where mem_region = comm_code ) as mem_region
+				    , mem_email
+				    , mem_remark
+				    , mem_team_name
+				    , mem_team_id
+				FROM
+				    member
+					  <![CDATA[                                     
+				WHERE mem_id = #{memId}
+		 				]]>
+	</select>
+
+	<select id="getMemberCount" resultType="int"
+		parameterType="kr.co.soccer.member.MemberVO">
+				SELECT count(*)
+				FROM member
+				 WHERE 1 = 1
+				<!-- <include refid="whereClause"/> -->
+	</select>
+
+	
+
+</mapper>

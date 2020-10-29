@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="kr.co.soccer.apply.IApplyDao">
+
+	<resultMap type="kr.co.soccer.apply.ApplyVO"
+				 id="applyMap">
+		<id 	 column="bo_no" 		property="boNo"/>
+		<result column="tm_id" 		property="tmId"/>
+		<result column="lg_code" 		property="lgCode"/>
+		<result column="lg_name" 		property="lgName"/>
+		<result column="reg_date" 	property="regDate"/>
+		<result column="result" 		property="result"/>
+		<result column="tm_name" 		property="tmName"/>
+		<result column="lg_region" 		property="lgRegion"/>
+		<result column="lg_region_nm" 		property="lgRegionNm"/>
+		
+	</resultMap>	
+	
+
+  <select id="getApplyCount" 
+          resultType="int">
+		SELECT count(*)       
+		  FROM leagueapply     
+  </select>
+  
+  <select id="getApplyList" resultType="kr.co.soccer.apply.ApplyVO" 
+                            parameterType="kr.co.soccer.apply.ApplySearchVO"  >                            
+		<include refid="common.PRE_PAGING_SQL" /> 
+	  		 SELECT bo_no
+	  		 		, tm_id
+	  		 		, (select tm_name from team where team.tm_id = leagueapply.tm_id) as tm_name
+	  		 		, lg_code    
+	  		 		, result
+	  		 		, to_char(reg_date, 'MM-DD hh:mm') as reg_date
+	  		 		, (select lg_name 
+	  		 			from league 
+	  		 			where league.lg_code = (SELECT LG_CODE
+													FROM(SELECT LG_CODE
+													       FROM LEAGUE
+													      WHERE START_DATE >= sysdate
+													   ORDER BY START_DATE)
+													WHERE rownum=1)) as lg_name
+				FROM leagueapply    
+			  ORDER BY bo_no DESC
+		<include refid="common.SUF_PAGING_SQL" />
+  </select>
+  
+  <select id="getApplyPassList" resultType="kr.co.soccer.apply.ApplyVO" 
+                            parameterType="kr.co.soccer.apply.ApplySearchVO"  >                            
+		<include refid="common.PRE_PAGING_SQL" /> 
+	  		 SELECT bo_no
+	  		 		, tm_id
+	  		 		, (select tm_name from team where team.tm_id = leagueapply.tm_id) as tm_name
+	  		 		, lg_code    
+	  		 		, DECODE(result, 'Y', '합격') as result
+	  		 		, to_char(reg_date, 'MM-DD hh:mm') as reg_date
+	  		 		, (select lg_name from league where leagueapply.lg_code = league.lg_code ) as lgName
+				FROM leagueapply  
+			  WHERE result = 'Y'
+			    AND lg_code = (SELECT LG_CODE
+				                FROM(SELECT LG_CODE
+				                       FROM LEAGUE
+				                      WHERE sysdate BETWEEN START_DATE AND END_DATE
+				                   ORDER BY START_DATE)
+				                WHERE rownum=1)
+			  ORDER BY tm_id ASC
+		<include refid="common.SUF_PAGING_SQL" />
+  </select>
+  
+  <select id="getApply" parameterType="int" resultMap="applyMap">
+			SELECT bo_no
+	  		 		, tm_id   
+	  		 		, (select tm_name from team where team.tm_id = leagueapply.tm_id) as tm_name   
+	  		 		, lg_code    
+	  		 		, result
+	  		 		, to_char(reg_date, 'MM-DD hh:mm') as reg_date
+			     <!-- , 'APPLY' AS bo_type -->
+			  FROM leagueapply   	
+			 WHERE bo_no = #{boNo}
+  </select>
+  
+  <insert id="insertApply" parameterType="kr.co.soccer.apply.ApplyVO">
+<!-- FreeBoardVO의 insertBoard한 후의 nextval 값을 boNo에 저장해라 이걸 #{boNo}라고 쓰면 된다 -->
+	<selectKey resultType="int" keyProperty="boNo" order="BEFORE">
+		SELECT MAX(NVL(bo_no, 0))+1 FROM leagueapply  
+	</selectKey>
+			INSERT INTO leagueapply (
+							   bo_no
+						    , tm_id
+						    , lg_code
+						) VALUES (
+							#{boNo}, #{tmId}, #{lgCode}
+			)
+			  
+  </insert>
+  <update id="updateApply" parameterType="kr.co.soccer.apply.ApplyVO">
+  		UPDATE leagueapply                       					         
+			   SET result = 'Y'
+			 WHERE bo_no = #{boNo}
+  </update>
+  
+  <delete id="deleteApply" parameterType="kr.co.soccer.apply.ApplyVO">
+ 			DELETE FROM leagueapply    
+ 			WHERE bo_no = #{boNo}  
+  </delete>
+     
+</mapper>

@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- nameSpace : 간단하게 하셔도 됩니다. 단, mapper 클래스를 사용하려면 완전한 클래스 이름으로 지정 -->
+<mapper namespace="kr.co.soccer.searchTeamMem.SearchTeamMemMapper">
+
+<resultMap type="kr.co.soccer.searchTeamMem.SearchTeamMemVO" id="searchTeamMemMap">
+		<id column="scht_no" 				property="schtNo" />
+		<result column="scht_position" 		property="schtPosition"/>
+		<result column="scht_age"	    property="schtAge"/>
+		<result column="scht_region" 	property="schtRegion"/>
+		<result column="scht_time"  property="schtTime"/>
+		<result column="scht_hit" 	    property="schtHit"/>
+		<result column="scht_title" 	property="schtTitle"/>
+		<result column="scht_content" 		    property="schtContent"/>
+		<result column="scht_regdate" 		property="schtRegDate"/>
+		<result column="scht_name"    property="schtName"/>
+		<result column="scht_position_nm"    property="schtPositionNm"/>
+		<result column="scht_region_nm"      property="schtRegionNm"/>
+		<result column="scht_category"      property="schtCategory"/>
+		
+	</resultMap>
+	
+	
+	<sql id="whereClause">  
+  			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchPosition)">
+  			AND SCHT_POSITION = #{searchPosition}
+  			</if>
+  			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchRegion)">
+  			AND SCHT_REGION = #{searchRegion}
+  			</if>
+  			
+  			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+  				<choose>
+  					<when test='searchType == "W"'>
+  						AND a.mem_name LIKE '%' || #{searchWord} || '%'
+  					</when>
+  					<when test='searchType == "T"'>
+  						AND scht_title LIKE '%' || #{searchWord} || '%'
+  					</when>
+  				</choose>
+  			</if>
+  			</sql>
+
+<sql id="whereClause2">  
+  			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchPosition)">
+  			AND SCHM_POSITION = #{searchPosition}
+  			</if>
+  			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchRegion)">
+  			AND SCHM_REGION = #{searchRegion}
+  			</if>
+  			
+  			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+  				<choose>
+  					<when test='searchType == "W"'>
+  						AND b.tm_name LIKE '%' || #{searchWord} || '%'
+  					</when>
+  					<when test='searchType == "T"'>
+  						AND schm_title LIKE '%' || #{searchWord} || '%'
+  					</when>
+  				</choose>
+  			</if>
+  			</sql>
+
+<select id="selectSearchTeamList" parameterType="kr.co.soccer.searchTeamMem.SearchTeamMemSearchVO" 
+		resultType="kr.co.soccer.searchTeamMem.SearchTeamMemVO">
+	 <include refid="common.PRE_PAGING_SQL"/>
+	 SELECT
+	    scht_no
+	    , a.mem_name as schtName
+	    , (select comm_name from comm c where c.comm_code =b.scht_position ) as scht_position_nm
+	    , scht_age
+	    , (select comm_name from comm c where c.comm_code = b.scht_region) as scht_region_nm
+	    , scht_time
+	    , scht_hit
+	    , scht_title
+	    , to_char(scht_regdate, 'YYYY-MM-DD') as scht_regdate
+	FROM searchteam b, member a
+   	WHERE b.mem_id = a.mem_id	    
+	     <include refid="whereClause"/>
+	     ORDER BY scht_no DESC
+		<include refid="common.SUF_PAGING_SQL"/>
+</select>
+ 
+ <select id="selectSearchTeamListCnt" parameterType="kr.co.soccer.searchTeamMem.SearchTeamMemSearchVO" resultType="int">
+ 	SELECT COUNT(*)
+	FROM searchteam b, member a
+   	WHERE b.mem_id = a.mem_id	      
+ 	<include refid="whereClause"/>
+ </select>
+
+
+<insert id="registerSearchTeam" parameterType="kr.co.soccer.searchTeamMem.SearchTeamMemVO">
+ 	<selectKey resultType="int" keyProperty="schtNo" order="BEFORE">
+		select MAX(scht_no) + 1 from searchteam 
+	</selectKey> 
+		INSERT INTO searchteam (
+	    scht_no
+	    , mem_id
+	    , scht_position
+	    , scht_age
+	    , scht_region
+	    , scht_time
+	    , scht_hit
+	    , scht_title
+	    , scht_content
+	    , mem_pass
+	    , scht_regdate
+	) VALUES (
+		<![CDATA[   
+	    #{schtNo}
+	    , #{memId}
+	    , #{schtPosition}
+	    , #{schtAge}
+	    , #{schtRegion}
+	    , #{schtTime}
+	    , 0
+	    , #{schtTitle}
+	    , #{schtContent}
+	    , #{memPass}
+	    , sysdate
+	)
+	]]>
+</insert>
+
+<select id="selectSearchTeamView" resultType="kr.co.soccer.searchTeamMem.SearchTeamMemVO" parameterType="int" resultMap="searchTeamMemMap"> 
+	SELECT
+		  b.scht_no
+	    , a.mem_name as scht_name
+	    , (select comm_name from comm c where c.comm_code = b.scht_position ) as scht_position_nm
+	    , (select comm_name from comm c where c.comm_code = b.scht_age) as scht_age_nm
+	    , (select comm_name from comm c where c.comm_code = b.scht_region) as scht_region_nm
+	    , (select comm_name from comm c where c.comm_code = b.scht_time) as scht_time_nm
+	    , scht_hit
+	    , scht_title
+	    , scht_content
+	    , scht_regdate
+	    , a.mem_phone as scht_phone
+	FROM searchteam b, member a
+   	WHERE b.mem_id = a.mem_id	
+   	and b.scht_no = #{schtNo}
+
+</select>
+
+<update id="modifySearchTeam" parameterType="kr.co.soccer.searchTeamMem.SearchTeamMemVO">
+<![CDATA[  
+    UPDATE searchteam
+		SET
+		    scht_position = #{schtPositionNm}
+		   , scht_age = #{schtAgeNm}
+		   , scht_region = #{schtRegionNm}
+		   , scht_time = #{schtTimeNm}
+		   , scht_title = #{schtTitle}
+		   , scht_content = #{schtContent}
+		WHERE
+		   	scht_no = #{schtNo}
+]]>   
+</update>
+
+<delete id="removeSearchTeam" parameterType="kr.co.soccer.searchTeamMem.SearchTeamMemVO"> 
+<![CDATA[ 
+	DELETE FROM searchteam
+	WHERE scht_no = #{schtNo}
+]]>
+
+</delete>
+
+<update id="increaseHitSearchTeam" parameterType="int">
+	UPDATE searchTeam
+	 SET  scht_hit = scht_hit + 1
+	 where scht_no = #{schtNo}
+</update>
+
+
+
+
+
+
+<select id="selectSearchMemList" parameterType="kr.co.soccer.searchTeamMem.SearchTeamMemSearchVO" 
+		resultType="kr.co.soccer.searchTeamMem.SearchTeamMemVO">
+	 <include refid="common.PRE_PAGING_SQL"/>
+	SELECT
+	    schm_no
+	    , b.tm_name
+	    , (select comm_name from comm c where c.comm_code =b.schm_position ) as schm_position_nm
+	    , (select comm_name from comm c where c.comm_code = b.schm_age) as schm_age_nm
+	    , (select comm_name from comm c where c.comm_code = b.schm_region) as schm_region_nm
+	    , (select comm_name from comm c where c.comm_code = b.schm_time) as schm_time_nm
+	    , schm_hit
+	    , schm_title
+	    , to_char(schm_regdate, 'YYYY-MM-DD') as schm_regdate
+	FROM searchmember b, member a
+   	WHERE b.tm_id = a.mem_team_id
+	     <include refid="whereClause2"/>
+	     ORDER BY schm_no DESC
+		<include refid="common.SUF_PAGING_SQL"/>
+</select>
+ 
+ <select id="selectSearchMemListCnt" parameterType="kr.co.soccer.searchTeamMem.SearchTeamMemSearchVO" resultType="int">
+ 	SELECT COUNT(*)
+	FROM searchmember b, member a
+   	WHERE b.tm_id = a.mem_team_id    
+ 	<include refid="whereClause2"/>
+ </select>
+
+
+<insert id="registerSearchMem" parameterType="kr.co.soccer.searchTeamMem.SearchTeamMemVO">
+ 	<selectKey resultType="int" keyProperty="schmNo" order="BEFORE">
+		select MAX(schm_no) + 1 from searchmember
+	</selectKey> 
+	INSERT INTO searchmember (
+    schm_no
+    , tm_id
+    , tm_name
+    , schm_position
+    , schm_age
+    , schm_region
+    , schm_time
+    , schm_hit
+    , schm_title
+    , schm_content
+    , schm_regdate
+) VALUES (
+<![CDATA[ 
+    #{schmNo}
+    , #{tmId}
+    , #{tmName}
+    , #{schmPosition}
+    , #{schmAge}
+	, #{schmRegion}
+	, #{schmTime}
+    , 0
+    , #{schmTitle}
+    , #{schmContent}
+    , sysdate
+)
+	]]>
+</insert>
+
+<select id="selectSearchMemView" resultType="kr.co.soccer.searchTeamMem.SearchTeamMemVO" parameterType="int" resultMap="searchTeamMemMap"> 
+	SELECT
+		  b.schm_no
+	    , b.tm_name
+	    , (select comm_name from comm c where c.comm_code = b.schm_position ) as schm_position_nm
+	    , (select comm_name from comm c where c.comm_code = b.schm_age) as schm_age_nm
+	    , (select comm_name from comm c where c.comm_code = b.schm_region) as schm_region_nm
+	    , (select comm_name from comm c where c.comm_code = b.schm_time) as schm_time_nm
+	    , schm_hit
+	    , schm_title
+	    , schm_content
+	    , schm_regdate
+	    , a.mem_phone as schmPhone
+	FROM searchmember b, member a
+   	WHERE b.tm_id = a.mem_team_id
+   	and b.schm_no = #{schmNo}
+
+</select>
+
+<update id="modifySearchMem" parameterType="kr.co.soccer.searchTeamMem.SearchTeamMemVO">
+<![CDATA[  
+    UPDATE searchmember
+		SET
+		    schm_position = #{schmPositionNm}
+		   , schm_age = #{schmAgeNm}
+		   , schm_region = #{schmRegionNm}
+		   , schm_time = #{schmTimeNm}
+		   , schm_title = #{schmTitle}
+		   , schm_content = #{schmContent}
+		WHERE
+		   	schm_no = #{schmNo}
+]]>   
+</update>
+
+<delete id="removeSearchMem" parameterType="kr.co.soccer.searchTeamMem.SearchTeamMemVO"> 
+<![CDATA[ 
+	DELETE FROM searchmember
+	WHERE schm_no = #{schmNo}
+]]>
+
+</delete>
+
+<update id="increaseHitSearchMem" parameterType="int">
+	UPDATE searchMember
+	 SET  schm_hit = schm_hit + 1
+	 where schm_no = #{schmNo}
+</update>
+
+
+</mapper>
+
+
+
+
+
+
+
+

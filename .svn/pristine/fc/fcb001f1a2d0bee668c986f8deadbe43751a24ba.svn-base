@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="kr.co.soccer.team.ITeamDao">
+ 
+	<resultMap type="kr.co.soccer.team.TeamVO" id="freeBoardMap">
+		<id column="tm_id" property="tmId" />
+		<result column="tm_name" property="tmName" />
+		<result column="tm_atch_name" property="tmAtchName" />
+		<result column="tm_mem" property="tmMem" />
+		<result column="tm_reg_date" property="tmRegDate" />
+		<result column="mem_id" property="memId" />
+		<result column="tm_content" property="tmContent" />
+		<result column="mem_name" property="memName" />
+		<result column="sum_played" property="sumPlayed" />
+		<result column="sum_win" property="sumWin" />
+		<result column="sum_lose" property="sumLose" />
+		<result column="sum_draw" property="sumDraw" />
+	</resultMap>	
+	
+	  <sql id="whereClause">
+		<if
+			test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+			<choose>
+				<when test='searchType == "TN"'>
+					AND tm_name LIKE '%' || #{searchWord} || '%'
+				</when>
+				<when test='searchType == "TMN"'>
+					AND (select mem_name
+							from member
+							where team.mem_id = member.mem_id) LIKE '%' || #{searchWord}	|| '%'
+				</when>
+				<when test='searchType == "TMID"'>
+					AND mem_id LIKE '%' || #{searchWord} || '%'
+				</when>
+				<otherwise>
+					AND mem_name LIKE '%' || #{searchWord} || '%'
+				</otherwise>
+			</choose>
+		</if>
+	</sql> 
+
+  <select id="getTeamCount" 
+          resultType="int" 
+          parameterType="kr.co.soccer.team.TeamSearchVO" >
+		SELECT count(*)       
+		  FROM team     
+		  WHERE tm_id is not null
+		 <include refid="whereClause" />
+  </select>
+  
+   <select id="teamNameCheck" 
+          resultType="int" 
+          parameterType="kr.co.soccer.team.TeamSearchVO" >
+		SELECT count(*)       
+		  FROM team  
+		 WHERE tm_name = #{tmName}   
+  </select>
+  
+  <select id="getTeamList" resultType="kr.co.soccer.team.TeamVO" 
+                            parameterType="kr.co.soccer.team.TeamSearchVO"  >                            
+		<include refid="common.PRE_PAGING_SQL" /> 
+	 	SELECT		tm_id
+			    , tm_name
+			    , tm_atch_name
+			    , tm_mem
+			    , TO_CHAR(tm_reg_date,'YY.MM.DD') AS tm_reg_date 
+			    , mem_id
+			    , tm_content
+			    ,(select mem_name from member where member.mem_id = team.mem_id) as mem_name
+			FROM team
+		  WHERE tm_id is not null
+   			<include refid="whereClause" />
+		ORDER BY tm_name ASC  
+		<include refid="common.SUF_PAGING_SQL" /> 
+  </select>
+  
+  <select id="getTeam" parameterType="int" resultMap="freeBoardMap">
+			SELECT a.tm_id
+			    , a.tm_name
+			    , a.tm_atch_name
+			    , a.tm_mem
+			    , TO_CHAR(a.tm_reg_date,'YYYY.MM.DD') AS tm_reg_date 
+			    , a.mem_id
+			    , a.tm_content
+			    , (select mem_name from member where member.mem_id = a.mem_id) as mem_name
+			    , NVL(b.sum_played, 0) as sum_played
+			    , NVL(c.sum_win, 0) as sum_win
+			    , NVL(d.sum_lose, 0) as sum_lose
+			    , NVL(e.sum_draw, 0) as sum_draw
+			  FROM team a,  (select tm_id, sum(rslt_played) as sum_played
+			                from leagueresult 
+			                group by tm_id) b,
+			                (select tm_id, sum(rslt_win) as sum_win
+			                from leagueresult 
+			                group by tm_id) c,
+			                (select tm_id, sum(rslt_lose) as sum_lose
+			                from leagueresult 
+			                group by tm_id) d,
+			                (select tm_id, sum(rslt_draw) as sum_draw
+			                from leagueresult 
+			                group by tm_id) e
+			 WHERE b.tm_id(+) = a.tm_id
+			   AND b.tm_id = c.tm_id(+)
+			   AND c.tm_id = d.tm_id(+)
+			   AND d.tm_id = e.tm_id(+)	
+			   AND a.tm_id = #{abc}
+  </select>
+  
+  <select id="getTeam2" parameterType="String" resultMap="freeBoardMap">
+			SELECT a.tm_id
+			    , a.tm_name
+			    , a.tm_atch_name
+			    , a.tm_mem
+			    , TO_CHAR(a.tm_reg_date,'YYYY.MM.DD') AS tm_reg_date 
+			    , a.mem_id
+			    , a.tm_content
+			    , (select mem_name from member where member.mem_id = a.mem_id) as mem_name
+			    , NVL(b.sum_played, 0) as sum_played
+			    , NVL(c.sum_win, 0) as sum_win
+			    , NVL(d.sum_lose, 0) as sum_lose
+			    , NVL(e.sum_draw, 0) as sum_draw
+			  FROM team a,  (select tm_id, sum(rslt_played) as sum_played
+			                from leagueresult 
+			                group by tm_id) b,
+			                (select tm_id, sum(rslt_win) as sum_win
+			                from leagueresult 
+			                group by tm_id) c,
+			                (select tm_id, sum(rslt_lose) as sum_lose
+			                from leagueresult 
+			                group by tm_id) d,
+			                (select tm_id, sum(rslt_draw) as sum_draw
+			                from leagueresult 
+			                group by tm_id) e
+			 WHERE b.tm_id(+) = a.tm_id
+			   AND b.tm_id = c.tm_id(+)
+			   AND c.tm_id = d.tm_id(+)
+			   AND d.tm_id = e.tm_id(+)		
+			   AND a.mem_id = #{asd} 
+  </select>
+  
+  <insert id="insertTeam" parameterType="kr.co.soccer.team.TeamVO">
+	<selectKey resultType="int" keyProperty="tmId" order="BEFORE">
+		SELECT MAX(tm_id)+1 FROM team 
+	</selectKey>
+			INSERT INTO team (                         
+				      tm_id       , tm_name  , tm_atch_name    
+				    , tm_mem   , tm_reg_date   , mem_id     
+				    , tm_content ) 			   
+				 VALUES (   			
+					   #{tmId}, #{tmName} , #{tmAtchName}				
+					 , #{tmMem}  , SYSDATE , #{memId}				
+					 , #{tmContent} )			  
+			  
+  </insert>
+  
+  <update id="updateTeam" parameterType="kr.co.soccer.team.TeamVO">
+  		UPDATE team                       					         
+			   SET tm_name   = #{tmName}        
+			     , tm_atch_name = #{tmAtchName}	 
+			     , tm_mem  = #{tmMem}  
+			     , tm_content = #{tmContent} 					 
+			 WHERE tm_id = #{tmId}
+  </update>
+  
+  <delete id="deleteTeam" parameterType="kr.co.soccer.team.TeamVO">
+ 			DELETE FROM team    
+ 			WHERE tm_id = #{tmId}  
+  </delete>
+    
+  
+</mapper>
